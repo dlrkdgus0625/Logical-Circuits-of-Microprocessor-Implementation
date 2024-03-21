@@ -8,10 +8,13 @@
 
 .equ UART1_SR, 0xE000102c
 .equ UART1_DATA, 0xE0001030
+.equ UART1_FIFO, 0xE0001030
 
 .global uart1_init
 .global uart1_set_baud
 .global uart1_putc
+.global uart1_readc
+.global uart1_readflush
 
 //return 1 in r0 if ready, 0 other wise
 uart1_tx_ready:
@@ -20,6 +23,35 @@ uart1_tx_ready:
 	ands r0, #0b10000
 	movne r0, #0
 	moveq r0, #1
+	bx lr
+
+uart1_RES_ready:
+	ldr r1, =UART1_SR
+	ldr r0, [r1]
+	ands r0, #0b10
+	//lsr r0, #1
+	movne r0, #0
+	moveq r0, #1
+	bx lr
+
+uart1_readc:
+	push { lr }
+	mov r4, r0
+	RES_poll:
+		bl uart1_RES_ready
+		cmp r0, #1
+		bne RES_poll
+
+	get_data:
+		ldr r1, =UART1_DATA
+		ldr r0,[r1]
+		//ldr r9,[r1]
+		pop { lr }
+	bx lr
+
+uart1_readflush:
+	ldr r1, =UART1_DATA
+	ldr r9, [r1]
 	bx lr
 
 
